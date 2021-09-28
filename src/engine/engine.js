@@ -720,35 +720,52 @@ export class Engine {
 		else throw new Error("Error subscribing processor message");
 	}
 
-	/**
+  /**
 	 * Load individual audio sample, assuming an origin URL with which the engine
 	 * is initialised
 	 * @param {*} objectName name of the sample
 	 * @param {*} url relative URL to the origin URL, startgin with `/`
+   * @param {*} absolute true is url given is absolute, if false (default) url is relative to origin
 	 */
-	loadSample(objectName, url) {
-		if (this.audioContext && this.audioWorkletNode) {
-			if (
-				url &&
-				url.length !== 0 &&
-				this.origin &&
-				this.origin.length !== 0 &&
-				new URL(this.origin + url)
-			) {
-				try {
-					loadSampleToArray(
-						this.audioContext,
-						objectName,
-						this.origin + url,
-						this.audioWorkletNode
-					);
-				} catch (error) {
-					console.error(
-						`Error loading sample ${objectName} from ${url}: `,
-						error
-					);
-				}
-			} else throw "Problem with sample relative URL";
-		} else throw "Engine is not initialised!";
-	}
+	loadSample(objectName, url, absolute = False) {
+    return new Promise((resolve, reject)=> {
+      if (this.audioContext && this.audioWorkletNode) {
+        if(!absolute)
+        {
+          if (
+            url &&
+            url.length !== 0 &&
+            this.origin &&
+            this.origin.length !== 0 &&
+            new URL(this.origin + url)
+          ) {
+            url = this.origin + url
+          } else {
+            reject("Problem with sample relative URL");
+          }
+        }
+        try {
+          loadSampleToArray(
+            this.audioContext,
+            objectName,
+            url,
+            this.audioWorkletNode
+          ).then(()=>{
+            resolve()
+          }).catch(()=> {
+            reject();
+          });
+        } catch (error) {
+          console.error(
+            `Error loading sample ${objectName} from ${url}: `,
+            error
+          );
+          reject();
+        }
+
+  		} else  {
+        reject("Engine is not initialised!");
+      }
+    });
+  }
 }
